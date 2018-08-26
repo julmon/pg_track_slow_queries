@@ -1,0 +1,5 @@
+# pg_track_slow_queries extension
+comment = 'Tracks slow queries and their execution plans'
+default_version = '1.0'
+module_pathname = '$libdir/pg_track_slow_queries'
+relocatable = true
