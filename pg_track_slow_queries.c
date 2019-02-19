@@ -63,7 +63,7 @@ static int pgtsq_init_socket(void);
 
 
 /* GUC variable */
-static int tsq_log_min_duration = 0; /* sec (>=0) or -1 (disabled) */
+static int tsq_log_min_duration = 0; /* ms (>=0) or -1 (disabled) */
 
 /* Saved hook values in case of unload */
 static shmem_startup_hook_type prev_shmem_startup_hook = NULL;
@@ -119,7 +119,7 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 		InstrEndLoop(queryDesc->totaltime);
 	}
 	if (tsq_enabled() && queryDesc->totaltime &&
-		queryDesc->totaltime->total > tsq_log_min_duration)
+		(queryDesc->totaltime->total * 1000.0) > tsq_log_min_duration)
 	{
 		ExplainState	*es = NewExplainState();
 		TSQEntry		*tsqe = NULL;
