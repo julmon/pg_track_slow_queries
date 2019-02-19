@@ -311,10 +311,10 @@ _PG_init(void)
 	DefineCustomIntVariable("pg_track_slow_queries.log_min_duration",
 							"Sets the minimum execution time above which queries and plans will "
 							"be logged.",
-							"Zero turns this feature off.",
+							"-1 turns this feature off.",
 							&tsq_log_min_duration,
-							0,
-							0, INT_MAX,
+							-1,
+							-1, INT_MAX,
 							PGC_SUSET,
 							GUC_UNIT_S,
 							NULL,
