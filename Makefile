@@ -2,7 +2,7 @@ EXTENSION    = pg_track_slow_queries
 EXTVERSION   = 1.0
 PG_CONFIG    = pg_config
 MODULE_big   = pg_track_slow_queries
-OBJS         = pg_track_slow_queries.o
+OBJS         = pg_track_slow_queries.o worker.o utils.o
 
 all:
 
