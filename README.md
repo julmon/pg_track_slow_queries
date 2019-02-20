@@ -19,7 +19,12 @@ The extension library should be loaded with Postgres parameter `shared_preload_l
 shared_preload_libraries='pg_track_slow_queries'
 ```
 
-By default, slow queries tracking is not enabled, you should configure the parameter `pg_track_slow_queries.log_min_duration`. This parameter sets the minimum execution time (in ms) above which queries will be logged. `-1` (default value) means the feature is disabled.
+### Parameters
+
+| Parameter                                  | unit   | default | description |
+|--------------------------------------------|--------|---------|-------------|
+| **pg_track_slow_queries.log_min_duration** | `ms`   | `-1`    | This parameter sets the minimum execution time (in ms) above which queries will be logged. `-1` (default value) means the feature is disabled. |
+| **pg_track_slow_queries.compression**      | `bool` | `on`    | Enable or disable row compression. Compression could have impacts on performances but will save disk space.                                    |
 
 ## Usage
 
