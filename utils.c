@@ -39,10 +39,10 @@ StringInfo pgtsq_serialize_entry(TSQEntry * tsqe)
 /*
  * Stores a serialized TSQEntry
  */
-uint32 pgtsq_store_entry(StringInfo tsqe_s)
+uint32 pgtsq_store_entry(StringInfo tsqe_s, bool compression)
 {
 	char		*buff;
-	uint32		buff_size;
+	uint32		buff_size = -1;
 	FILE		*file = NULL;
 
 	/*
@@ -50,7 +50,11 @@ uint32 pgtsq_store_entry(StringInfo tsqe_s)
 	 * to be sure to have enough space.
 	 */
 	buff = (char *) palloc0(tsqe_s->len);
-	buff_size = pglz_compress(tsqe_s->data, tsqe_s->len, buff, NULL);
+
+	/* Try to compress data if compression is enabled */
+	if (compression)
+		buff_size = pglz_compress(tsqe_s->data, tsqe_s->len, buff, NULL);
+
 	if (buff_size == -1)
 		buff_size = 0;
 

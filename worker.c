@@ -26,6 +26,8 @@ pgtsq_worker(Datum main_arg)
 	char msgbuf[MSG_BUFFER_SIZE];
 	int n;
 	StringInfo si;
+	bool compression = true;
+	const char * guc_compression_value;
 
 	si = makeStringInfo();
 
@@ -40,6 +42,12 @@ pgtsq_worker(Datum main_arg)
 	 */
 	while (!got_sigterm)
 	{
+		/* Get pg_track_slow_queries.compress GUC value and enabled/disable compression */
+		compression = true;
+		guc_compression_value = GetConfigOption("pg_track_slow_queries.compression", true, false);
+		if (guc_compression_value != NULL)
+			compression = (strcmp(guc_compression_value, "on") == 0);
+
 		tv.tv_sec = timeout;
 		tv.tv_usec = 0;
 
@@ -55,7 +63,7 @@ pgtsq_worker(Datum main_arg)
 				appendStringInfoString(si, msgbuf);
 
 				if (pgtsq_check_row(si->data))
-					pgtsq_store_entry(si);
+					pgtsq_store_entry(si, compression);
 				else
 					ereport(LOG,
 						(errmsg("pg_track_slow_queries: could not parse row")));
