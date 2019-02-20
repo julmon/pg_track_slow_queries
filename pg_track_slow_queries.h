@@ -10,6 +10,9 @@
 #define tsq_enabled() \
 	(tsq_log_min_duration >= 0)
 
+#define tsq_compression_enabled() \
+	(tsq_compression == true)
+
 typedef struct TSQEntry {
 	char	*datetime;			/* Execution end datetime */
 	double	duration;			/* Duration in ms */
@@ -34,7 +37,7 @@ typedef struct TSQItem {
 } TSQItem;
 
 
-extern uint32 pgtsq_store_entry(StringInfo tsqe_s);
+extern uint32 pgtsq_store_entry(StringInfo tsqe_s, bool compression);
 extern void pgtsq_truncate_file(void);
 extern bool pgtsq_check_row(char * row);
 extern bool pgtsq_parse_row(char * row, TSQEntry * tsqe);

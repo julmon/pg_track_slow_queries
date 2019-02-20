@@ -61,9 +61,10 @@ static void pgtsq_ExecutorFinish(QueryDesc *queryDesc);
 static void pgtsq_shmem_startup(void);
 static int pgtsq_init_socket(void);
 
-
 /* GUC variable */
-static int tsq_log_min_duration = 0; /* ms (>=0) or -1 (disabled) */
+static int tsq_log_min_duration = 0;	/* ms (>=0) or -1 (disabled) */
+static bool tsq_compression = true;		/* enable row compression */
+
 
 /* Saved hook values in case of unload */
 static shmem_startup_hook_type prev_shmem_startup_hook = NULL;
@@ -189,7 +190,7 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 			}
 		} else {
 			/* Row storage is done by the backend itself */
-			if (pgtsq_store_entry(tsqe_s) == -1)
+			if (pgtsq_store_entry(tsqe_s, tsq_compression_enabled()) == -1)
 			{
 				ereport(LOG,
 					(errmsg("pg_track_slow_queries: could not store data")));
@@ -320,6 +321,18 @@ _PG_init(void)
 							NULL,
 							NULL,
 							NULL);
+
+	DefineCustomBoolVariable("pg_track_slow_queries.compression",
+							"Enables data compression.",
+							NULL,
+							&tsq_compression,
+							true,
+							PGC_SUSET,
+							0,
+							NULL,
+							NULL,
+							NULL);
+
 
 	EmitWarningsOnPlaceholders("pg_track_slow_queries");
 
