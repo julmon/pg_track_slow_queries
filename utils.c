@@ -179,7 +179,9 @@ pgtsq_check_row(char * row)
 			return false;
 
 		p += item->length + 8;
+		free(item->data);
 	}
+	pfree(item);
 	return true;
 }
 
