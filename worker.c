@@ -26,8 +26,10 @@ pgtsq_worker(Datum main_arg)
 	char msgbuf[MSG_BUFFER_SIZE];
 	int n;
 	StringInfo si;
-	bool compression = true;
+	bool compression;
+	int max_file_size_mb;
 	const char * guc_compression_value;
+	const char * guc_max_file_size_value;
 
 	si = makeStringInfo();
 
@@ -48,6 +50,12 @@ pgtsq_worker(Datum main_arg)
 		if (guc_compression_value != NULL)
 			compression = (strcmp(guc_compression_value, "on") == 0);
 
+		/* Get pg_track_slow_queries.max_file_size GUC value */
+		max_file_size_mb = 1024;
+		guc_max_file_size_value = GetConfigOption("pg_track_slow_queries.max_file_size", true, false);
+		if (guc_max_file_size_value != NULL)
+			max_file_size_mb = (int) strtol(guc_max_file_size_value, (char **)NULL, 10);
+
 		tv.tv_sec = timeout;
 		tv.tv_usec = 0;
 
@@ -63,11 +71,16 @@ pgtsq_worker(Datum main_arg)
 				appendStringInfoString(si, msgbuf);
 
 				if (pgtsq_check_row(si->data))
-					pgtsq_store_entry(si, compression);
-				else
+				{
+					if (pgtsq_store_entry(si, compression, max_file_size_mb) == -1)
+					{
+						ereport(LOG,
+							(errmsg("pg_track_slow_queries: could not store data")));
+					}
+				} else {
 					ereport(LOG,
 						(errmsg("pg_track_slow_queries: could not parse row")));
-
+				}
 				memset(msgbuf, 0, sizeof(msgbuf));
 				CHECK_FOR_INTERRUPTS();
 			}

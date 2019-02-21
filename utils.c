@@ -1,3 +1,5 @@
+#define _FILE_OFFSET_BITS 64
+
 #include "postgres.h"
 #include <unistd.h>
 #include "common/pg_lzcompress.h"
@@ -39,11 +41,13 @@ StringInfo pgtsq_serialize_entry(TSQEntry * tsqe)
 /*
  * Stores a serialized TSQEntry
  */
-uint32 pgtsq_store_entry(StringInfo tsqe_s, bool compression)
+uint32 pgtsq_store_entry(StringInfo tsqe_s, bool compression, int max_file_size_mb)
 {
 	char		*buff;
 	uint32		buff_size = -1;
 	FILE		*file = NULL;
+	off_t		pos = 0;
+	long		row_size = 0;
 
 	/*
 	 * Allocate a buffer for compression as long as the original string in order
@@ -63,6 +67,34 @@ uint32 pgtsq_store_entry(StringInfo tsqe_s, bool compression)
 	file = AllocateFile(TSQ_FILE, PG_BINARY_A);
 	if (file == NULL)
 		goto write_error;
+
+	/*
+	 * If max_file_size_mb is set we have to check file size before adding
+	 * a new record. We want to skip new records if file size could exceed
+	 * max_file_size.
+	 */
+	if (max_file_size_mb != -1)
+	{
+		/* Get file current position */
+		pos = ftello(file);
+
+		/* Row size calculation */
+		row_size += 8;
+		if (buff_size > 0)
+		{
+			row_size += buff_size;
+		} else {
+			row_size += tsqe_s->len;
+		}
+
+		if ((pos + row_size) > (max_file_size_mb * 1024 * 1024))
+		{
+			ereport(LOG,
+				(errmsg("pg_track_slow_queries: max_file_size reached")));
+			buff_size = -1;
+			goto end;
+		}
+	}
 
 	/* Write compressed and original data size */
 	if (fwrite(&buff_size, 1, sizeof(uint32), file) != sizeof(buff_size))
@@ -84,6 +116,7 @@ uint32 pgtsq_store_entry(StringInfo tsqe_s, bool compression)
 			goto write_error;
 	}
 
+end:
 	LWLockRelease(pgtsqss->lock);
 	FreeFile(file);
 
