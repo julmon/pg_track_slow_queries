@@ -64,7 +64,7 @@ static int pgtsq_init_socket(void);
 /* GUC variable */
 static int tsq_log_min_duration = 0;	/* ms (>=0) or -1 (disabled) */
 static bool tsq_compression = true;		/* enable row compression */
-
+static int tsq_max_file_size_mb = -1;	/* storage file max size in MB */
 
 /* Saved hook values in case of unload */
 static shmem_startup_hook_type prev_shmem_startup_hook = NULL;
@@ -190,7 +190,8 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 			}
 		} else {
 			/* Row storage is done by the backend itself */
-			if (pgtsq_store_entry(tsqe_s, tsq_compression_enabled()) == -1)
+			if (pgtsq_store_entry(
+					tsqe_s, tsq_compression_enabled(), tsq_max_file_size_mb) == -1)
 			{
 				ereport(LOG,
 					(errmsg("pg_track_slow_queries: could not store data")));
@@ -329,6 +330,18 @@ _PG_init(void)
 							true,
 							PGC_SUSET,
 							0,
+							NULL,
+							NULL,
+							NULL);
+
+	DefineCustomIntVariable("pg_track_slow_queries.max_file_size",
+							"Sets the maximum storage file size.",
+							"-1 turns this feature off.",
+							&tsq_max_file_size_mb,
+							-1,
+							-1, MAX_KILOBYTES,
+							PGC_SUSET,
+							GUC_UNIT_MB,
 							NULL,
 							NULL,
 							NULL);
