@@ -43,21 +43,28 @@ StringInfo pgtsq_serialize_entry(TSQEntry * tsqe)
  */
 uint32 pgtsq_store_row(char * row, int length, bool compression, int max_file_size_mb)
 {
-	char		*buff;
+	char		*buff = NULL;
 	uint32		buff_size = -1;
 	FILE		*file = NULL;
 	off_t		pos = 0;
 	long		row_size = 0;
 
-	/*
-	 * Allocate a buffer for compression as long as the original string in order
-	 * to be sure to have enough space.
-	 */
-	buff = (char *) palloc0(length);
-
 	/* Try to compress data if compression is enabled */
 	if (compression)
+	{
+		/*
+		 * Allocate a buffer for compression as long as the original string in order
+		 * to be sure to have enough space.
+		 */
+		if ((buff = (char *) palloc0(length)) == NULL)
+		{
+			ereport(LOG,
+				(errmsg("pg_track_slow_queries: could not allocate memory")));
+			return -1;
+		}
+
 		buff_size = pglz_compress(row, length, buff, NULL);
+	}
 
 	if (buff_size == -1)
 		buff_size = 0;
@@ -120,7 +127,8 @@ end:
 	LWLockRelease(pgtsqss->lock);
 	FreeFile(file);
 
-	pfree(buff);
+	if (buff != NULL)
+		pfree(buff);
 
 	return buff_size;
 
@@ -169,7 +177,12 @@ pgtsq_check_row(char * row)
 	uint32	p = 0;
 	TSQItem	* item = NULL;
 
-	item = (TSQItem *)palloc(sizeof(TSQItem));
+	if ((item = (TSQItem *)palloc(sizeof(TSQItem))) == NULL)
+	{
+		ereport(LOG,
+			(errmsg("pg_track_slow_queries: could not allocate memory")));
+		return false;
+	}
 
 	for (int c = 1; c <= TSQ_COLS; c++)
 	{
@@ -195,7 +208,12 @@ pgtsq_parse_row(char * row, TSQEntry * tsqe)
 	uint32	p = 0;
 	TSQItem	* item = NULL;
 
-	item = (TSQItem *)palloc(sizeof(TSQItem));
+	if ((item = (TSQItem *)palloc(sizeof(TSQItem))) == NULL)
+	{
+		ereport(LOG,
+			(errmsg("pg_track_slow_queries: could not allocate memory")));
+		return false;
+	}
 
 	/* Row items parsing and type conversion if needed*/
 	for (int c = 1; c <= TSQ_COLS; c++)
