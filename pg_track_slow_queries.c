@@ -201,6 +201,8 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 		pfree(tsqe->username);
 		pfree(tsqe->dbname);
 		pfree(tsqe->plantxt);
+		free(tsqe->datetime);
+		free(tsqe->querytxt);
 		pfree(tsqe);
 		pfree(tsqe_s->data);
 		pfree(tsqe_s);
