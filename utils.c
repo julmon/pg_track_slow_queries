@@ -39,9 +39,9 @@ StringInfo pgtsq_serialize_entry(TSQEntry * tsqe)
 }
 
 /*
- * Stores a serialized TSQEntry
+ * Stores a row / serialized TSQEntry
  */
-uint32 pgtsq_store_entry(StringInfo tsqe_s, bool compression, int max_file_size_mb)
+uint32 pgtsq_store_row(char * row, int length, bool compression, int max_file_size_mb)
 {
 	char		*buff;
 	uint32		buff_size = -1;
@@ -53,19 +53,19 @@ uint32 pgtsq_store_entry(StringInfo tsqe_s, bool compression, int max_file_size_
 	 * Allocate a buffer for compression as long as the original string in order
 	 * to be sure to have enough space.
 	 */
-	buff = (char *) palloc0(tsqe_s->len);
+	buff = (char *) palloc0(length);
 
 	/* Try to compress data if compression is enabled */
 	if (compression)
-		buff_size = pglz_compress(tsqe_s->data, tsqe_s->len, buff, NULL);
+		buff_size = pglz_compress(row, length, buff, NULL);
 
 	if (buff_size == -1)
 		buff_size = 0;
 
 	/* Acquire an exclusive lock before writing the entry */
 	LWLockAcquire(pgtsqss->lock, LW_EXCLUSIVE);
-	file = AllocateFile(TSQ_FILE, PG_BINARY_A);
-	if (file == NULL)
+
+	if ((file = AllocateFile(TSQ_FILE, PG_BINARY_A)) == NULL)
 		goto write_error;
 
 	/*
@@ -84,7 +84,7 @@ uint32 pgtsq_store_entry(StringInfo tsqe_s, bool compression, int max_file_size_
 		{
 			row_size += buff_size;
 		} else {
-			row_size += tsqe_s->len;
+			row_size += length;
 		}
 
 		if ((pos + row_size) > (max_file_size_mb * 1024 * 1024))
@@ -99,7 +99,7 @@ uint32 pgtsq_store_entry(StringInfo tsqe_s, bool compression, int max_file_size_
 	/* Write compressed and original data size */
 	if (fwrite(&buff_size, 1, sizeof(uint32), file) != sizeof(buff_size))
 		goto write_error;
-	if (fwrite(&tsqe_s->len, 1, sizeof(uint32), file) != sizeof(tsqe_s->len))
+	if (fwrite(&length, 1, sizeof(int), file) != sizeof(length))
 		goto write_error;
 
 	if (buff_size == 0)
@@ -109,7 +109,7 @@ uint32 pgtsq_store_entry(StringInfo tsqe_s, bool compression, int max_file_size_
 		 * StringInfo for some reasons, probably because there is no gain to
 		 * compress it. In this case, let's store data uncompressed.
 		 */
-		if (fwrite(tsqe_s->data, 1, tsqe_s->len, file) != tsqe_s->len)
+		if (fwrite(row, 1, length, file) != length)
 			goto write_error;
 	} else {
 		if (fwrite(buff, 1, buff_size, file) != buff_size)

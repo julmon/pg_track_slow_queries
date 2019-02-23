@@ -37,7 +37,7 @@ typedef struct TSQItem {
 } TSQItem;
 
 
-extern uint32 pgtsq_store_entry(StringInfo tsqe_s, bool compression, int max_file_size_mb);
+extern uint32 pgtsq_store_row(char * row, int length, bool compression, int max_file_size_mb);
 extern void pgtsq_truncate_file(void);
 extern bool pgtsq_check_row(char * row);
 extern bool pgtsq_parse_row(char * row, TSQEntry * tsqe);
