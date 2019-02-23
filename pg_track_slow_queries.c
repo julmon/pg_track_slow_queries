@@ -190,8 +190,8 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 			}
 		} else {
 			/* Row storage is done by the backend itself */
-			if (pgtsq_store_entry(
-					tsqe_s, tsq_compression_enabled(), tsq_max_file_size_mb) == -1)
+			if (pgtsq_store_row(tsqe_s->data, tsqe_s->len, tsq_compression_enabled(),
+					tsq_max_file_size_mb) == -1)
 			{
 				ereport(LOG,
 					(errmsg("pg_track_slow_queries: could not store data")));

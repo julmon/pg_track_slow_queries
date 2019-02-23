@@ -25,13 +25,10 @@ pgtsq_worker(Datum main_arg)
 	int retval;
 	char msgbuf[MSG_BUFFER_SIZE];
 	int n;
-	StringInfo si;
 	bool compression;
 	int max_file_size_mb;
 	const char * guc_compression_value;
 	const char * guc_max_file_size_value;
-
-	si = makeStringInfo();
 
 	/* Establish signal handlers before unblocking signals. */
 	pqsignal(SIGHUP, pgtsq_worker_sighup);
@@ -67,12 +64,9 @@ pgtsq_worker(Datum main_arg)
 			memset(msgbuf, 0, sizeof(msgbuf));
 			while ((n = recv(pgtsqss->socket, msgbuf, sizeof(msgbuf), 0)) > 0)
 			{
-				resetStringInfo(si);
-				appendStringInfoString(si, msgbuf);
-
-				if (pgtsq_check_row(si->data))
+				if (pgtsq_check_row(msgbuf))
 				{
-					if (pgtsq_store_entry(si, compression, max_file_size_mb) == -1)
+					if (pgtsq_store_row(msgbuf, n, compression, max_file_size_mb) == -1)
 					{
 						ereport(LOG,
 							(errmsg("pg_track_slow_queries: could not store data")));
