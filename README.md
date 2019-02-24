@@ -26,6 +26,7 @@ shared_preload_libraries='pg_track_slow_queries'
 | **pg_track_slow_queries.log_min_duration** | `ms`   | `-1`    | This parameter sets the minimum execution time (in ms) above which queries will be logged. `-1` (default value) means the feature is disabled. |
 | **pg_track_slow_queries.compression**      | `bool` | `on`    | Enable or disable row compression. Compression could have impacts on performances but will save disk space.                                    |
 | **pg_track_slow_queries.max_file_size**    | `MB`   | `-1`    | Sets the maximum size of storage file. `-1` means no limitation.                                                                               |
+| **pg_track_slow_queries.log_plan**         | `bool` | `on`    | Enable execution plan logging.                                                                                                                 |
 
 ## Usage
 
