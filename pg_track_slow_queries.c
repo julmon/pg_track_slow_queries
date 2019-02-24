@@ -29,7 +29,13 @@
 #include "pgstat.h"
 #include "commands/dbcommands.h"
 #include "commands/explain.h"
+
+#if (PG_VERSION_NUM >= 100000)
 #include "common/ip.h"
+#else
+#include "libpq/ip.h"
+#endif
+
 #include "common/pg_lzcompress.h"
 #include "executor/executor.h"
 #include "lib/stringinfo.h"
@@ -37,9 +43,10 @@
 #include "storage/ipc.h"
 #include "storage/proc.h"
 #include "storage/shmem.h"
+#include "storage/fd.h"
 #include "utils/builtins.h"
 #include "utils/guc.h"
-#include "utils/fmgrprotos.h"
+#include "fmgr.h"
 #include "utils/timestamp.h"
 
 #include "pg_track_slow_queries.h"
@@ -54,9 +61,19 @@ PGDLLEXPORT Datum pg_track_slow_queries_reset(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum pg_track_slow_queries(PG_FUNCTION_ARGS);
 static void pgtsq_ExecutorEnd(QueryDesc *queryDesc);
 static void pgtsq_ExecutorStart(QueryDesc *queryDesc, int eflags);
+#if (PG_VERSION_NUM >= 100000)
 static void pgtsq_ExecutorRun(QueryDesc *queryDesc,
 							  ScanDirection direction,
 							  uint64 count, bool execute_once);
+#elif (PG_VERSION_NUM >= 90600)
+static void pgtsq_ExecutorRun(QueryDesc *queryDesc,
+							  ScanDirection direction,
+							  uint64 count);
+#else
+static void pgtsq_ExecutorRun(QueryDesc *queryDesc,
+							  ScanDirection direction,
+							  int64 count);
+#endif
 static void pgtsq_ExecutorFinish(QueryDesc *queryDesc);
 static void pgtsq_shmem_startup(void);
 static int pgtsq_init_socket(void);
@@ -64,7 +81,7 @@ static int pgtsq_init_socket(void);
 /* GUC variable */
 static int tsq_log_min_duration = 0;	/* ms (>=0) or -1 (disabled) */
 static bool tsq_compression = true; 	/* enable row compression */
-static int tsq_max_file_size_mb = -1;	/* storage file max size in MB */
+static int tsq_max_file_size_kb = -1;	/* storage file max size in kB */
 static bool tsq_log_plan = true;    	/* enable row compression */
 
 /* Saved hook values in case of unload */
@@ -197,7 +214,7 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 		} else {
 			/* Row storage is done by the backend itself */
 			if (pgtsq_store_row(tsqe_s->data, tsqe_s->len, tsq_compression_enabled(),
-					tsq_max_file_size_mb) == -1)
+					tsq_max_file_size_kb) == -1)
 			{
 				ereport(LOG,
 					(errmsg("pg_track_slow_queries: could not store data")));
@@ -229,16 +246,32 @@ end:
  * ExecutorRun hook: all we need do is track nesting depth
  */
 static void
+#if (PG_VERSION_NUM >= 100000)
 pgtsq_ExecutorRun(QueryDesc *queryDesc, ScanDirection direction,
 				  uint64 count, bool execute_once)
+#elif (PG_VERSION_NUM >= 90600)
+pgtsq_ExecutorRun(QueryDesc *queryDesc, ScanDirection direction,
+				  uint64 count)
+#else
+pgtsq_ExecutorRun(QueryDesc *queryDesc, ScanDirection direction,
+				  int64 count)
+#endif
 {
 	nesting_level++;
 	PG_TRY();
 	{
 		if (prev_ExecutorRun)
+#if (PG_VERSION_NUM >= 100000)
 			prev_ExecutorRun(queryDesc, direction, count, execute_once);
+#else
+			prev_ExecutorRun(queryDesc, direction, count);
+#endif
 		else
+#if (PG_VERSION_NUM >= 100000)
 			standard_ExecutorRun(queryDesc, direction, count, execute_once);
+#else
+			standard_ExecutorRun(queryDesc, direction, count);
+#endif
 		nesting_level--;
 	}
 	PG_CATCH();
@@ -296,7 +329,11 @@ pgtsq_shmem_startup(void)
 
 	if (!found)
 	{
+#if (PG_VERSION_NUM >= 90600)
 		pgtsqss->lock = &(GetNamedLWLockTranche("pg_track_slow_queries"))->lock;
+#else
+		pgtsqss->lock = LWLockAssign();
+#endif
 		/* Init socket for backends to collector IPC */
 		pgtsqss->socket = pgtsq_init_socket();
 	}
@@ -348,11 +385,11 @@ _PG_init(void)
 	DefineCustomIntVariable("pg_track_slow_queries.max_file_size",
 							"Sets the maximum storage file size.",
 							"-1 turns this feature off.",
-							&tsq_max_file_size_mb,
+							&tsq_max_file_size_kb,
 							-1,
 							-1, MAX_KILOBYTES,
 							PGC_SUSET,
-							GUC_UNIT_MB,
+							GUC_UNIT_KB,
 							NULL,
 							NULL,
 							NULL);
@@ -370,17 +407,27 @@ _PG_init(void)
 
 	EmitWarningsOnPlaceholders("pg_track_slow_queries");
 
+#if (PG_VERSION_NUM >= 90600)
 	RequestNamedLWLockTranche("pg_track_slow_queries", 1);
+#else
+	RequestAddinLWLocks(1);
+#endif
 
 	/* Register background worker */
 	memset(&worker, 0, sizeof(worker));
 	worker.bgw_start_time = BgWorkerStart_RecoveryFinished;
 	worker.bgw_restart_time = -1;
 	worker.bgw_flags = BGWORKER_SHMEM_ACCESS;
+#if (PG_VERSION_NUM >= 100000)
 	snprintf(worker.bgw_library_name, BGW_MAXLEN, "pg_track_slow_queries");
 	snprintf(worker.bgw_function_name, BGW_MAXLEN, "pgtsq_worker");
+#else
+	worker.bgw_main = pgtsq_worker;
+#endif
 	snprintf(worker.bgw_name, BGW_MAXLEN, "pg_track_slow_queries writer");
+#if (PG_VERSION_NUM >= 110000)
 	snprintf(worker.bgw_type, BGW_MAXLEN, "pgtsq_worker");
+#endif
 	worker.bgw_notify_pid = 0;
 	worker.bgw_main_arg = (Datum) 0;
 	RegisterBackgroundWorker(&worker);
@@ -530,7 +577,7 @@ pg_track_slow_queries_internal(FunctionCallInfo fcinfo)
 		values[i++] = CStringGetTextDatum(tsqe->dbname);
 		values[i++] = UInt32GetDatum(tsqe->temp_blks_written);
 		values[i++] = Float8GetDatumFast(tsqe->hitratio);
-		values[i++] = UInt64GetDatum(tsqe->ntuples);
+		values[i++] = Int64GetDatum(tsqe->ntuples);
 		values[i++] = CStringGetTextDatum(tsqe->querytxt);
 		values[i++] = CStringGetTextDatum(tsqe->plantxt);
 
