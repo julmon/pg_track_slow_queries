@@ -26,7 +26,7 @@ pgtsq_worker(Datum main_arg)
 	char msgbuf[MSG_BUFFER_SIZE];
 	int n;
 	bool compression;
-	int max_file_size_mb;
+	int max_file_size_kb;
 	const char * guc_compression_value;
 	const char * guc_max_file_size_value;
 
@@ -48,10 +48,10 @@ pgtsq_worker(Datum main_arg)
 			compression = (strcmp(guc_compression_value, "on") == 0);
 
 		/* Get pg_track_slow_queries.max_file_size GUC value */
-		max_file_size_mb = 1024;
+		max_file_size_kb = 1024 * 1024;
 		guc_max_file_size_value = GetConfigOption("pg_track_slow_queries.max_file_size", true, false);
 		if (guc_max_file_size_value != NULL)
-			max_file_size_mb = (int) strtol(guc_max_file_size_value, (char **)NULL, 10);
+			max_file_size_kb = (int) strtol(guc_max_file_size_value, (char **)NULL, 10);
 
 		tv.tv_sec = timeout;
 		tv.tv_usec = 0;
@@ -66,7 +66,7 @@ pgtsq_worker(Datum main_arg)
 			{
 				if (pgtsq_check_row(msgbuf))
 				{
-					if (pgtsq_store_row(msgbuf, n, compression, max_file_size_mb) == -1)
+					if (pgtsq_store_row(msgbuf, n, compression, max_file_size_kb) == -1)
 					{
 						ereport(LOG,
 							(errmsg("pg_track_slow_queries: could not store data")));

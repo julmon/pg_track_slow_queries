@@ -41,7 +41,7 @@ StringInfo pgtsq_serialize_entry(TSQEntry * tsqe)
 /*
  * Stores a row / serialized TSQEntry
  */
-uint32 pgtsq_store_row(char * row, int length, bool compression, int max_file_size_mb)
+uint32 pgtsq_store_row(char * row, int length, bool compression, int max_file_size_kb)
 {
 	char		*buff = NULL;
 	uint32		buff_size = -1;
@@ -65,7 +65,6 @@ uint32 pgtsq_store_row(char * row, int length, bool compression, int max_file_si
 
 		buff_size = pglz_compress(row, length, buff, NULL);
 	}
-
 	if (buff_size == -1)
 		buff_size = 0;
 
@@ -76,11 +75,11 @@ uint32 pgtsq_store_row(char * row, int length, bool compression, int max_file_si
 		goto write_error;
 
 	/*
-	 * If max_file_size_mb is set we have to check file size before adding
+	 * If max_file_size_kb is set we have to check file size before adding
 	 * a new record. We want to skip new records if file size could exceed
 	 * max_file_size.
 	 */
-	if (max_file_size_mb != -1)
+	if (max_file_size_kb != -1)
 	{
 		/* Get file current position */
 		pos = ftello(file);
@@ -94,7 +93,7 @@ uint32 pgtsq_store_row(char * row, int length, bool compression, int max_file_si
 			row_size += length;
 		}
 
-		if ((pos + row_size) > (max_file_size_mb * 1024 * 1024))
+		if ((pos + row_size) > (max_file_size_kb * 1024))
 		{
 			ereport(LOG,
 				(errmsg("pg_track_slow_queries: max_file_size reached")));

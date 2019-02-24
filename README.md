@@ -1,6 +1,7 @@
 # pg_track_slow_queries
 
-PostgreSQL extension for slow queries tracking. This extension logs SQL queries and related informations into dedicated file, only if query execution duration exceeds a certain amount of time. Logged query list can be retreive using SQL function `pg_track_slow_queries()`. Log file can be truncated with `pg_track_slow_queries_reset()`.
+PostgreSQL (9.5+) extension for slow queries tracking. This extension logs SQL queries and related informations into dedicated file, only if query execution duration exceeds a certain amount of time. Logged query list can be retreive using SQL function `pg_track_slow_queries()`. Log file can be truncated with `pg_track_slow_queries_reset()`.
+
 
 ## Status
 
@@ -14,18 +15,23 @@ $ sudo PATH=$PATH:/path/to/pgsql/bin make install
 
 ## Configuration
 
-The extension library should be loaded with Postgres parameter `shared_preload_libraries`:
+The extension library should be loaded with Postgres parameter `shared_preload_libraries` and Postgres instance restarted:
 ```ini
 shared_preload_libraries='pg_track_slow_queries'
 ```
 
-### Parameters
+Then, the extension could be created on `postgres` database with:
+```sql
+CREATE EXTENSION pg_track_slow_queries;
+```
+
+### Parameters / GUCs
 
 | Parameter                                  | unit   | default | description |
 |--------------------------------------------|--------|---------|-------------|
 | **pg_track_slow_queries.log_min_duration** | `ms`   | `-1`    | This parameter sets the minimum execution time (in ms) above which queries will be logged. `-1` (default value) means the feature is disabled. |
 | **pg_track_slow_queries.compression**      | `bool` | `on`    | Enable or disable row compression. Compression could have impacts on performances but will save disk space.                                    |
-| **pg_track_slow_queries.max_file_size**    | `MB`   | `-1`    | Sets the maximum size of storage file. `-1` means no limitation.                                                                               |
+| **pg_track_slow_queries.max_file_size**    | `kB`   | `-1`    | Sets the maximum size of storage file. `-1` means no limitation.                                                                               |
 | **pg_track_slow_queries.log_plan**         | `bool` | `on`    | Enable execution plan logging.                                                                                                                 |
 
 ## Usage
