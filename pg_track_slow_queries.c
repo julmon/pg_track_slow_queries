@@ -63,8 +63,9 @@ static int pgtsq_init_socket(void);
 
 /* GUC variable */
 static int tsq_log_min_duration = 0;	/* ms (>=0) or -1 (disabled) */
-static bool tsq_compression = true;		/* enable row compression */
+static bool tsq_compression = true; 	/* enable row compression */
 static int tsq_max_file_size_mb = -1;	/* storage file max size in MB */
+static bool tsq_log_plan = true;    	/* enable row compression */
 
 /* Saved hook values in case of unload */
 static shmem_startup_hook_type prev_shmem_startup_hook = NULL;
@@ -122,11 +123,11 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 	if (tsq_enabled() && queryDesc->totaltime &&
 		(queryDesc->totaltime->total * 1000.0) > tsq_log_min_duration)
 	{
-		ExplainState	*es = NewExplainState();
-		TSQEntry		*tsqe = NULL;
-		BufferUsage		bu = queryDesc->totaltime->bufusage;
-		StringInfo		tsqe_s;
-		ssize_t			sent;
+		ExplainState	*es = NULL;
+		TSQEntry    	*tsqe = NULL;
+		BufferUsage 	bu = queryDesc->totaltime->bufusage;
+		StringInfo  	tsqe_s;
+		ssize_t     	sent;
 
 		if ((tsqe = (TSQEntry *) palloc0(sizeof(TSQEntry))) == NULL)
 		{
@@ -155,25 +156,30 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 			tsqe->hitratio = 100.0;
 		tsqe->ntuples = (uint64) queryDesc->totaltime->ntuples;
 
-		/* Get Execution Plan as JSON */
-		es->verbose = 1;
-		es->analyze = 0;
-		es->buffers = 0;
-		es->timing = 0;
-		es->summary = 0;
-		es->format = EXPLAIN_FORMAT_JSON;
+		if (tsq_log_plan_enabled())
+		{
+			es = NewExplainState();
+			/* Get Execution Plan as JSON */
+			es->verbose = 1;
+			es->analyze = 0;
+			es->buffers = 0;
+			es->timing = 0;
+			es->summary = 0;
+			es->format = EXPLAIN_FORMAT_JSON;
 
-		ExplainBeginOutput(es);
-		ExplainPrintPlan(es, queryDesc);
-		ExplainEndOutput(es);
+			ExplainBeginOutput(es);
+			ExplainPrintPlan(es, queryDesc);
+			ExplainEndOutput(es);
 
-		/* Remove last line break */
-		if (es->str->len > 0 && es->str->data[es->str->len - 1] == '\n')
-			es->str->data[--es->str->len] = '\0';
-		/* Fix JSON to output an object */
-		es->str->data[0] = '{';
-		es->str->data[es->str->len - 1] = '}';
-		tsqe->plantxt = es->str->data;
+			/* Remove last line break */
+			if (es->str->len > 0 && es->str->data[es->str->len - 1] == '\n')
+				es->str->data[--es->str->len] = '\0';
+			/* Fix JSON to output an object */
+			es->str->data[0] = '{';
+			es->str->data[es->str->len - 1] = '}';
+			tsqe->plantxt = es->str->data;
+		} else
+			tsqe->plantxt = "\0";
 
 		/* Data serialization */
 		tsqe_s = pgtsq_serialize_entry(tsqe);
@@ -200,13 +206,16 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 		/* Free memory */
 		pfree(tsqe->username);
 		pfree(tsqe->dbname);
-		pfree(tsqe->plantxt);
+		if (tsq_log_plan_enabled())
+		{
+			pfree(tsqe->plantxt);
+			pfree(es);
+		}
 		free(tsqe->datetime);
 		free(tsqe->querytxt);
 		pfree(tsqe);
 		pfree(tsqe_s->data);
 		pfree(tsqe_s);
-		pfree(es);
 	}
 
 end:
@@ -348,6 +357,16 @@ _PG_init(void)
 							NULL,
 							NULL);
 
+	DefineCustomBoolVariable("pg_track_slow_queries.log_plan",
+							"Enables execution plan logging.",
+							NULL,
+							&tsq_log_plan,
+							true,
+							PGC_SUSET,
+							0,
+							NULL,
+							NULL,
+							NULL);
 
 	EmitWarningsOnPlaceholders("pg_track_slow_queries");
 

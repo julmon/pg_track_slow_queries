@@ -13,6 +13,9 @@
 #define tsq_compression_enabled() \
 	(tsq_compression == true)
 
+#define tsq_log_plan_enabled() \
+	(tsq_log_plan == true)
+
 typedef struct TSQEntry {
 	char	*datetime;			/* Execution end datetime */
 	double	duration;			/* Duration in ms */
