@@ -25,8 +25,8 @@ pgtsq_worker(Datum main_arg)
 	int				retval;
 	char			msgbuf[MSG_BUFFER_SIZE];
 	int				n;
-	bool			compression;
-	int				max_file_size_kb;
+	bool			compression = true;
+	int				max_file_size_kb = 1024 * 1024;
 	const char		*guc_compression_value;
 	const char		*guc_max_file_size_value;
 
@@ -39,20 +39,21 @@ pgtsq_worker(Datum main_arg)
 	/*
 	 * Main loop: do this until the SIGTERM handler tells us to terminate
 	 */
+
+	/* Get pg_track_slow_queries.compress GUC value and enabled/disable
+	 * compression */
+	if ((guc_compression_value = GetConfigOption(
+					"pg_track_slow_queries.compression", true, false)) != NULL)
+		compression = (strcmp(guc_compression_value, "on") == 0);
+
+	/* Get pg_track_slow_queries.max_file_size GUC value */
+	if ((guc_max_file_size_value = GetConfigOption(
+					"pg_track_slow_queries.max_file_size", true, false)) != NULL)
+		max_file_size_kb = (int) strtol(guc_max_file_size_value,
+										(char **)NULL, 10);
+
 	while (!got_sigterm)
 	{
-		/* Get pg_track_slow_queries.compress GUC value and enabled/disable compression */
-		compression = true;
-		guc_compression_value = GetConfigOption("pg_track_slow_queries.compression", true, false);
-		if (guc_compression_value != NULL)
-			compression = (strcmp(guc_compression_value, "on") == 0);
-
-		/* Get pg_track_slow_queries.max_file_size GUC value */
-		max_file_size_kb = 1024 * 1024;
-		guc_max_file_size_value = GetConfigOption("pg_track_slow_queries.max_file_size", true, false);
-		if (guc_max_file_size_value != NULL)
-			max_file_size_kb = (int) strtol(guc_max_file_size_value, (char **)NULL, 10);
-
 		tv.tv_sec = timeout;
 		tv.tv_usec = 0;
 
@@ -88,6 +89,15 @@ pgtsq_worker(Datum main_arg)
 		{
 			got_sighup = false;
 			ProcessConfigFile(PGC_SIGHUP);
+
+			/* Reload GUCs */
+			if ((guc_compression_value = GetConfigOption(
+					"pg_track_slow_queries.compression", true, false)) != NULL)
+				compression = (strcmp(guc_compression_value, "on") == 0);
+			if ((guc_max_file_size_value = GetConfigOption(
+					"pg_track_slow_queries.max_file_size", true, false)) != NULL)
+				max_file_size_kb = (int) strtol(guc_max_file_size_value,
+												(char **)NULL, 10);
 		}
 	}
 
