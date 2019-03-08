@@ -1,0 +1,10 @@
+version: '2'
+
+services:
+  debian-pg11-pgtsq:
+    image: debian:stretch
+    environment:
+    - VERSION
+    volumes:
+    - ..:/workspace
+    command: /workspace/tests/deb_pg11_run_tests.sh
