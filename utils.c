@@ -18,23 +18,23 @@ StringInfo pgtsq_serialize_entry(TSQEntry * tsqe)
 	StringInfo	si;
 	si = makeStringInfo();
 	appendStringInfo(si, "%08x%s",
-		(int) strlen(tsqe->datetime), tsqe->datetime);
+					 (int) strlen(tsqe->datetime), tsqe->datetime);
 	appendStringInfo(si, "%08x%016.02f",
-		16, tsqe->duration);
+					 16, tsqe->duration);
 	appendStringInfo(si, "%08x%s",
-		(int) strlen(tsqe->username), tsqe->username);
+					 (int) strlen(tsqe->username), tsqe->username);
 	appendStringInfo(si, "%08x%s",
-		(int) strlen(tsqe->dbname), tsqe->dbname);
+					 (int) strlen(tsqe->dbname), tsqe->dbname);
 	appendStringInfo(si, "%08x%016li",
-		16, tsqe->temp_blks_written);
+					 16, tsqe->temp_blks_written);
 	appendStringInfo(si, "%08x%010.06f",
-		10, tsqe->hitratio);
+					 10, tsqe->hitratio);
 	appendStringInfo(si, "%08x%016lu",
-		16, tsqe->ntuples);
+					 16, tsqe->ntuples);
 	appendStringInfo(si, "%08x%s",
-		(uint32) strlen(tsqe->querytxt), tsqe->querytxt);
+					 (uint32) strlen(tsqe->querytxt), tsqe->querytxt);
 	appendStringInfo(si, "%08x%s",
-		(uint32) strlen(tsqe->plantxt), tsqe->plantxt);
+					 (uint32) strlen(tsqe->plantxt), tsqe->plantxt);
 	return si;
 }
 
@@ -59,7 +59,7 @@ uint32 pgtsq_store_row(char * row, int length, bool compression, int max_file_si
 		if ((buff = (char *) palloc0(length)) == NULL)
 		{
 			ereport(LOG,
-				(errmsg("pg_track_slow_queries: could not allocate memory")));
+					(errmsg("pg_track_slow_queries: could not allocate memory")));
 			return -1;
 		}
 
@@ -96,7 +96,7 @@ uint32 pgtsq_store_row(char * row, int length, bool compression, int max_file_si
 		if ((pos + row_size) > (max_file_size_kb * 1024))
 		{
 			ereport(LOG,
-				(errmsg("pg_track_slow_queries: max_file_size reached")));
+					(errmsg("pg_track_slow_queries: max_file_size reached")));
 			buff_size = -1;
 			goto end;
 		}
@@ -150,8 +150,8 @@ write_error:
 void
 pgtsq_parse_item(char * buffer, uint32 p, TSQItem * item)
 {
-	uint32	msg_length;
-	char	header[9];
+	uint32		msg_length;
+	char		header[9];
 
 	strncpy(header, buffer + p, 8);
 	errno = 0;
@@ -173,13 +173,13 @@ pgtsq_parse_item(char * buffer, uint32 p, TSQItem * item)
 bool
 pgtsq_check_row(char * row)
 {
-	uint32	p = 0;
-	TSQItem	* item = NULL;
+	uint32		p = 0;
+	TSQItem		*item = NULL;
 
 	if ((item = (TSQItem *)palloc(sizeof(TSQItem))) == NULL)
 	{
 		ereport(LOG,
-			(errmsg("pg_track_slow_queries: could not allocate memory")));
+				(errmsg("pg_track_slow_queries: could not allocate memory")));
 		return false;
 	}
 
@@ -204,13 +204,13 @@ pgtsq_check_row(char * row)
 bool
 pgtsq_parse_row(char * row, TSQEntry * tsqe)
 {
-	uint32	p = 0;
-	TSQItem	* item = NULL;
+	uint32		p = 0;
+	TSQItem		*item = NULL;
 
 	if ((item = (TSQItem *)palloc(sizeof(TSQItem))) == NULL)
 	{
 		ereport(LOG,
-			(errmsg("pg_track_slow_queries: could not allocate memory")));
+				(errmsg("pg_track_slow_queries: could not allocate memory")));
 		return false;
 	}
 
@@ -288,8 +288,8 @@ pgtsq_truncate_file(void)
 	LWLockRelease(pgtsqss->lock);
 	if (file == NULL)
 		ereport(ERROR,
-			(errcode_for_file_access(),
-			 errmsg("pg_track_slow_queries: could not write file \"%s\": %m",
+				(errcode_for_file_access(),
+				 errmsg("pg_track_slow_queries: could not write file \"%s\": %m",
 					TSQ_FILE)));
 	FreeFile(file);
 }

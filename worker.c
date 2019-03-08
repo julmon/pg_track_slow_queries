@@ -19,16 +19,16 @@ static volatile sig_atomic_t got_sigterm = false;
 void
 pgtsq_worker(Datum main_arg)
 {
-	fd_set rfds;
-	struct timeval tv;
-	int timeout = 1;
-	int retval;
-	char msgbuf[MSG_BUFFER_SIZE];
-	int n;
-	bool compression;
-	int max_file_size_kb;
-	const char * guc_compression_value;
-	const char * guc_max_file_size_value;
+	fd_set			rfds;
+	struct timeval	tv;
+	int				timeout = 1;
+	int				retval;
+	char			msgbuf[MSG_BUFFER_SIZE];
+	int				n;
+	bool			compression;
+	int				max_file_size_kb;
+	const char		*guc_compression_value;
+	const char		*guc_max_file_size_value;
 
 	/* Establish signal handlers before unblocking signals. */
 	pqsignal(SIGHUP, pgtsq_worker_sighup);
@@ -69,11 +69,11 @@ pgtsq_worker(Datum main_arg)
 					if (pgtsq_store_row(msgbuf, n, compression, max_file_size_kb) == -1)
 					{
 						ereport(LOG,
-							(errmsg("pg_track_slow_queries: could not store data")));
+								(errmsg("pg_track_slow_queries: could not store data")));
 					}
 				} else {
 					ereport(LOG,
-						(errmsg("pg_track_slow_queries: could not parse row")));
+							(errmsg("pg_track_slow_queries: could not parse row")));
 				}
 				memset(msgbuf, 0, sizeof(msgbuf));
 				CHECK_FOR_INTERRUPTS();
