@@ -209,7 +209,7 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 			if (sent != tsqe_s->len)
 			{
 				ereport(LOG,
-					(errmsg("pg_track_slow_queries: could not send data to the collector")));
+						(errmsg("pg_track_slow_queries: could not send data to the collector")));
 			}
 		} else {
 			/* Row storage is done by the backend itself */
@@ -217,7 +217,7 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 					tsq_max_file_size_kb) == -1)
 			{
 				ereport(LOG,
-					(errmsg("pg_track_slow_queries: could not store data")));
+						(errmsg("pg_track_slow_queries: could not store data")));
 			}
 		}
 		/* Free memory */
@@ -324,8 +324,8 @@ pgtsq_shmem_startup(void)
 
 	/* Storage file access lock */
 	pgtsqss = ShmemInitStruct("pg_track_slow_queries",
-					sizeof(TSQSharedState),
-					&found);
+							  sizeof(TSQSharedState),
+							  &found);
 
 	if (!found)
 	{
@@ -503,12 +503,12 @@ pg_track_slow_queries_internal(FunctionCallInfo fcinfo)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("pg_track_slow_queries: set-valued function called in context " \
-							"that cannot accept a set")));
+						"that cannot accept a set")));
 	if (!(rsinfo->allowedModes & SFRM_Materialize))
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("pg_track_slow_queries: materialize mode required, but it is not " \
-							"allowed in this context")));
+						"allowed in this context")));
 
 	/* Switch into long-lived context to construct returned data structures */
 	per_query_ctx = rsinfo->econtext->ecxt_per_query_memory;
@@ -537,7 +537,7 @@ pg_track_slow_queries_internal(FunctionCallInfo fcinfo)
 	{
 		Datum	values[TSQ_COLS];
 		bool	nulls[TSQ_COLS];
-		int		i = 0;
+		int 	i = 0;
 
 		memset(values, 0, sizeof(values));
 		memset(nulls, 0, sizeof(nulls));
@@ -601,21 +601,21 @@ pg_track_slow_queries_internal(FunctionCallInfo fcinfo)
 
 read_error:
 	ereport(LOG,
-			(errcode_for_file_access(),
-			 errmsg("pg_track_slow_queries: could not read file \"%s\": %m",
-					TSQ_FILE)));
+		    (errcode_for_file_access(),
+		     errmsg("pg_track_slow_queries: could not read file \"%s\": %m",
+				    TSQ_FILE)));
 	goto fail;
 
 decompress_error:
 	ereport(LOG,
-			(errcode_for_file_access(),
-			 errmsg("pg_track_slow_queries: could not decompress row")));
+		    (errcode_for_file_access(),
+		     errmsg("pg_track_slow_queries: could not decompress row")));
 	goto fail;
 
 parse_error:
 	ereport(LOG,
-			(errcode_for_file_access(),
-			 errmsg("pg_track_slow_queries: could not parse row")));
+		    (errcode_for_file_access(),
+		     errmsg("pg_track_slow_queries: could not parse row")));
 	goto fail;
 
 fail:
@@ -634,16 +634,14 @@ static int
 pgtsq_init_socket(void)
 {
 	ACCEPT_TYPE_ARG3 alen;
-	struct addrinfo *addrs = NULL,
-			   *addr,
-				hints;
-	int			ret;
-	fd_set		rset;
-	struct timeval tv;
-	char		test_byte;
-	int			sel_res;
-	int			tries = 0;
-	int			PGTSQSocket = PGINVALID_SOCKET;
+	struct addrinfo	 *addrs = NULL, *addr, hints;
+	int				 ret;
+	fd_set			 rset;
+	struct timeval	 tv;
+	char			 test_byte;
+	int				 sel_res;
+	int				 tries = 0;
+	int				 PGTSQSocket = PGINVALID_SOCKET;
 
 #define TESTBYTEVAL ((char) 199)
 
