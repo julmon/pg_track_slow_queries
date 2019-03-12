@@ -3,7 +3,7 @@
 
 #define TSQ_FILE PGSTAT_STAT_PERMANENT_DIRECTORY "/pg_track_slow_queries.stat"
 /* Number of columns */
-#define TSQ_COLS			9
+#define TSQ_COLS			10
 #define PGSTAT_MIN_RCVBUF	(100 * 1024)
 #define MSG_BUFFER_SIZE		(64 * 1024)
 
@@ -20,6 +20,7 @@ typedef struct TSQEntry {
 	char	*datetime;			/* Execution end datetime */
 	double	duration;			/* Duration in ms */
 	char	*username;			/* Username running the query */
+	char	*appname;			/* Application name */
 	char	*dbname;			/* Database name */
 	long	temp_blks_written;	/* Blocks written for temp. files usage */
 	float	hitratio;			/* Cache hit-ratio */

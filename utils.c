@@ -24,6 +24,8 @@ StringInfo pgtsq_serialize_entry(TSQEntry * tsqe)
 	appendStringInfo(si, "%08x%s",
 					 (int) strlen(tsqe->username), tsqe->username);
 	appendStringInfo(si, "%08x%s",
+					 (int) strlen(tsqe->appname), tsqe->appname);
+	appendStringInfo(si, "%08x%s",
 					 (int) strlen(tsqe->dbname), tsqe->dbname);
 	appendStringInfo(si, "%08x%016li",
 					 16, tsqe->temp_blks_written);
@@ -238,31 +240,35 @@ pgtsq_parse_row(char * row, TSQEntry * tsqe)
 			case 3:
 				/* username */
 				tsqe->username = item->data;
-				break;;
+				break;
 			case 4:
+				/* appname */
+				tsqe->appname = item->data;
+				break;
+			case 5:
 				/* dbname */
 				tsqe->dbname = item->data;
 				break;
-			case 5:
+			case 6:
 				/* temp_blks_written */
 				tsqe->temp_blks_written = atoi(item->data);
 				free(item->data);
 				break;
-			case 6:
+			case 7:
 				/* hitratio */
 				tsqe->hitratio = atof(item->data);
 				free(item->data);
 				break;
-			case 7:
+			case 8:
 				/* ntuples */
 				tsqe->ntuples = atoi(item->data);
 				free(item->data);
 				break;
-			case 8:
+			case 9:
 				/* querytxt */
 				tsqe->querytxt = item->data;
 				break;
-			case 9:
+			case 10:
 				/* plantxt */
 				tsqe->plantxt = item->data;
 				break;

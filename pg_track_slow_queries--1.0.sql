@@ -6,6 +6,7 @@ CREATE FUNCTION pg_track_slow_queries(
     OUT datetime TIMESTAMP WITH TIME ZONE,
     OUT duration FLOAT,
     OUT username VARCHAR(256),
+    OUT appname VARCHAR(256),
     OUT dbname VARCHAR(256),
     OUT temp_blks_written BIGINT,
     OUT hitratio FLOAT,

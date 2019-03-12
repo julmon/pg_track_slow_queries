@@ -48,6 +48,7 @@ SELECT ok(
     datetime IS NOT NULL AND
     duration is NOT NULL AND
     username IS NOT NULL AND
+    appname IS NOT NULL AND
     dbname IS NOT NULL AND
     temp_blks_written IS NOT NULL AND
     hitratio IS NOT NULL AND
