@@ -21,7 +21,7 @@ shared_preload_libraries='pg_track_slow_queries'
 ```
 
 Then, the extension could be created on `postgres` database with:
-```sql
+```SQL
 CREATE EXTENSION pg_track_slow_queries;
 ```
 
@@ -36,36 +36,39 @@ CREATE EXTENSION pg_track_slow_queries;
 
 ## Usage
 
-Acces to logged queries:
+Access to logged queries:
 
+```SQL
+SELECT * FROM pg_track_slow_queries();
+```
 ```console
-postgres=# SELECT * FROM pg_track_slow_queries();
 -[ RECORD 1 ]-----+--------------------------------------------------
-datetime          | 2018-08-28 10:25:09.128408+02
-duration          | 2002.26
+datetime          | 2019-03-12 11:48:03.783453+01
+duration          | 1001.24
 username          | julien
+appname           | psql
 dbname            | postgres
 temp_blks_written | 0
 hitratio          | 100
 ntuples           | 1
-query             | SELECT pg_sleep(2);
-plan              | {                                                +
-                  |   "Plan": {                                      +
-                  |     "Node Type": "Result",                       +
-                  |     "Parallel Aware": false,                     +
-                  |     "Startup Cost": 0.00,                        +
-                  |     "Total Cost": 0.01,                          +
-                  |     "Plan Rows": 1,                              +
-                  |     "Plan Width": 4,                             +
-                  |     "Output": ["pg_sleep('2'::double precision)"]+
-                  |   }                                              +
+query             | SELECT pg_sleep(1);
+plan              | {                                                   +
+                  |   "Plan": {                                         +
+                  |     "Node Type": "Result",                          +
+                  |     "Parallel Aware": false,                        +
+                  |     "Startup Cost": 0.00,                           +
+                  |     "Total Cost": 0.01,                             +
+                  |     "Plan Rows": 1,                                 +
+                  |     "Plan Width": 4,                                +
+                  |     "Output": ["pg_sleep('1'::double precision)"]   +
+                  |   }                                                 +
                   | }
 ```
 
 Reset log file:
 
-```console
-postgres=# SELECT * FROM pg_track_slow_queries_reset();
+```SQL
+SELECT * FROM pg_track_slow_queries_reset();
 ```
 
 ## Columns
@@ -73,12 +76,13 @@ postgres=# SELECT * FROM pg_track_slow_queries_reset();
  1. `datetime`: statement's end of execution datetime (timestamptz)
  2. `duration`: execution duration, in seconds
  3. `username`: username that issued the statement
- 4. `dbname`: database name
- 5. `temp_blks_written`: number of blocks written for temporary files usage
- 6. `hitratio`: statement cache hit-ratio
- 7. `ntuples`: number of tuples affected by the statement
- 8. `query`: the statement
- 9. `plan`: statement execution plan (JSON)
+ 4. `appname`: application name
+ 5. `dbname`: database name
+ 6. `temp_blks_written`: number of blocks written for temporary files usage
+ 7. `hitratio`: statement cache hit-ratio
+ 8. `ntuples`: number of tuples affected by the statement
+ 9. `query`: the statement
+ 10. `plan`: statement execution plan (JSON)
 
 ## Caveats
 

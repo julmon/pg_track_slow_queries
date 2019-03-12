@@ -141,10 +141,10 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 		(queryDesc->totaltime->total * 1000.0) > tsq_log_min_duration)
 	{
 		ExplainState	*es = NULL;
-		TSQEntry    	*tsqe = NULL;
-		BufferUsage 	bu = queryDesc->totaltime->bufusage;
-		StringInfo  	tsqe_s;
-		ssize_t     	sent;
+		TSQEntry		*tsqe = NULL;
+		BufferUsage		bu = queryDesc->totaltime->bufusage;
+		StringInfo		tsqe_s;
+		ssize_t			sent;
 
 		if ((tsqe = (TSQEntry *) palloc0(sizeof(TSQEntry))) == NULL)
 		{
@@ -156,6 +156,11 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 		/* Fetch data */
 		tsqe->username = GetUserNameFromId(GetUserId(), false);
 		tsqe->dbname = get_database_name(MyDatabaseId);
+		/* Application name */
+		if (application_name == NULL || *application_name == '\0')
+			tsqe->appname = "unknown";
+		else
+			tsqe->appname = application_name;
 		/* Get current timestamp as query's end of execution datetime */
 		tsqe->datetime = strdup(timestamptz_to_str(GetCurrentTimestamp()));
 		/* Duration time in ms */
@@ -574,6 +579,7 @@ pg_track_slow_queries_internal(FunctionCallInfo fcinfo)
 										  Int32GetDatum(-1));
 		values[i++] = Float8GetDatumFast(tsqe->duration);
 		values[i++] = CStringGetTextDatum(tsqe->username);
+		values[i++] = CStringGetTextDatum(tsqe->appname);
 		values[i++] = CStringGetTextDatum(tsqe->dbname);
 		values[i++] = UInt32GetDatum(tsqe->temp_blks_written);
 		values[i++] = Float8GetDatumFast(tsqe->hitratio);
@@ -585,6 +591,7 @@ pg_track_slow_queries_internal(FunctionCallInfo fcinfo)
 
 		free(tsqe->dbname);
 		free(tsqe->username);
+		free(tsqe->appname);
 		free(tsqe->datetime);
 		free(tsqe->querytxt);
 		free(tsqe->plantxt);
