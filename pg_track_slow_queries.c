@@ -114,7 +114,7 @@ pgtsq_ExecutorStart(QueryDesc *queryDesc, int eflags)
 	else
 		standard_ExecutorStart(queryDesc, eflags);
 
-	if (tsq_enabled() && queryDesc->totaltime == NULL)
+	if (tsq_enabled() && queryDesc->totaltime == NULL && nesting_level == 0)
 	{
 		MemoryContext oldcxt;
 		/* Move to query memory context */
