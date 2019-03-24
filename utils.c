@@ -165,7 +165,7 @@ pgtsq_parse_item(char * buffer, uint32 p, TSQItem * item)
 		item = NULL;
 		return;
 	}
-	item->data = strndup(buffer + p + 8, msg_length);
+	item->data = pnstrdup(buffer + p + 8, msg_length);
 	item->length = msg_length;
 }
 
@@ -193,7 +193,7 @@ pgtsq_check_row(char * row)
 			return false;
 
 		p += item->length + 8;
-		free(item->data);
+		pfree(item->data);
 	}
 	pfree(item);
 	return true;
@@ -235,7 +235,7 @@ pgtsq_parse_row(char * row, TSQEntry * tsqe)
 			case 2:
 				/* duration */
 				tsqe->duration = atof(item->data);
-				free(item->data);
+				pfree(item->data);
 				break;
 			case 3:
 				/* username */
@@ -252,17 +252,17 @@ pgtsq_parse_row(char * row, TSQEntry * tsqe)
 			case 6:
 				/* temp_blks_written */
 				tsqe->temp_blks_written = atoi(item->data);
-				free(item->data);
+				pfree(item->data);
 				break;
 			case 7:
 				/* hitratio */
 				tsqe->hitratio = atof(item->data);
-				free(item->data);
+				pfree(item->data);
 				break;
 			case 8:
 				/* ntuples */
 				tsqe->ntuples = atoi(item->data);
-				free(item->data);
+				pfree(item->data);
 				break;
 			case 9:
 				/* querytxt */

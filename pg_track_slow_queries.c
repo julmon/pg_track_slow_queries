@@ -162,10 +162,10 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 		else
 			tsqe->appname = application_name;
 		/* Get current timestamp as query's end of execution datetime */
-		tsqe->datetime = strdup(timestamptz_to_str(GetCurrentTimestamp()));
+		tsqe->datetime = pstrdup(timestamptz_to_str(GetCurrentTimestamp()));
 		/* Duration time in ms */
 		tsqe->duration = queryDesc->totaltime->total * 1000.0;
-		tsqe->querytxt = strdup(queryDesc->sourceText);
+		tsqe->querytxt = pstrdup(queryDesc->sourceText);
 		tsqe->temp_blks_written = bu.temp_blks_written;
 		/* Shared buffers hit ratio */
 		if ((bu.shared_blks_hit + bu.local_blks_hit +
@@ -233,8 +233,8 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 			pfree(tsqe->plantxt);
 			pfree(es);
 		}
-		free(tsqe->datetime);
-		free(tsqe->querytxt);
+		pfree(tsqe->datetime);
+		pfree(tsqe->querytxt);
 		pfree(tsqe);
 		pfree(tsqe_s->data);
 		pfree(tsqe_s);
@@ -589,12 +589,12 @@ pg_track_slow_queries_internal(FunctionCallInfo fcinfo)
 
 		tuplestore_putvalues(tupstore, tupdesc, values, nulls);
 
-		free(tsqe->dbname);
-		free(tsqe->username);
-		free(tsqe->appname);
-		free(tsqe->datetime);
-		free(tsqe->querytxt);
-		free(tsqe->plantxt);
+		pfree(tsqe->dbname);
+		pfree(tsqe->username);
+		pfree(tsqe->appname);
+		pfree(tsqe->datetime);
+		pfree(tsqe->querytxt);
+		pfree(tsqe->plantxt);
 		pfree(buff);
 		pfree(tsqe);
 	}
