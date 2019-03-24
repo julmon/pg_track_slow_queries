@@ -145,6 +145,12 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 		BufferUsage		bu = queryDesc->totaltime->bufusage;
 		StringInfo		tsqe_s;
 		ssize_t			sent;
+		MemoryContext	tmpcontext;
+		MemoryContext	oldcontext;
+
+		tmpcontext = AllocSetContextCreate(CurrentMemoryContext,
+						"PGTSQExecutorEnd", ALLOCSET_START_SMALL_SIZES);
+		oldcontext = MemoryContextSwitchTo(tmpcontext);
 
 		if ((tsqe = (TSQEntry *) palloc0(sizeof(TSQEntry))) == NULL)
 		{
@@ -225,19 +231,8 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 						(errmsg("pg_track_slow_queries: could not store data")));
 			}
 		}
-		/* Free memory */
-		pfree(tsqe->username);
-		pfree(tsqe->dbname);
-		if (tsq_log_plan_enabled())
-		{
-			pfree(tsqe->plantxt);
-			pfree(es);
-		}
-		pfree(tsqe->datetime);
-		pfree(tsqe->querytxt);
-		pfree(tsqe);
-		pfree(tsqe_s->data);
-		pfree(tsqe_s);
+		MemoryContextSwitchTo(oldcontext);
+		MemoryContextDelete(tmpcontext);
 	}
 
 end:
@@ -540,9 +535,14 @@ pg_track_slow_queries_internal(FunctionCallInfo fcinfo)
 	/* Start by reading compressed row length */
 	while (fread(&row_c_size, sizeof(uint32), 1, file) == 1)
 	{
-		Datum	values[TSQ_COLS];
-		bool	nulls[TSQ_COLS];
-		int 	i = 0;
+		Datum			values[TSQ_COLS];
+		bool			nulls[TSQ_COLS];
+		int 			i = 0;
+		MemoryContext	tmpcontext;
+
+		tmpcontext = AllocSetContextCreate(CurrentMemoryContext,
+						"PGTSQInternal", ALLOCSET_START_SMALL_SIZES);
+		oldcontext = MemoryContextSwitchTo(tmpcontext);
 
 		memset(values, 0, sizeof(values));
 		memset(nulls, 0, sizeof(nulls));
@@ -589,14 +589,9 @@ pg_track_slow_queries_internal(FunctionCallInfo fcinfo)
 
 		tuplestore_putvalues(tupstore, tupdesc, values, nulls);
 
-		pfree(tsqe->dbname);
-		pfree(tsqe->username);
-		pfree(tsqe->appname);
-		pfree(tsqe->datetime);
-		pfree(tsqe->querytxt);
-		pfree(tsqe->plantxt);
-		pfree(buff);
-		pfree(tsqe);
+		MemoryContextSwitchTo(oldcontext);
+		MemoryContextDelete(tmpcontext);
+
 	}
 
 	LWLockRelease(pgtsqss->lock);
