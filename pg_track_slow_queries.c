@@ -489,12 +489,13 @@ pg_track_slow_queries_internal(FunctionCallInfo fcinfo)
 	ReturnSetInfo	*rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
 	MemoryContext	per_query_ctx;
 	MemoryContext	oldcontext;
+	MemoryContext	tmpcontext = NULL;
 	TupleDesc		tupdesc;
 	Tuplestorestate	*tupstore;
 	FILE			*file = NULL;
-	uint32			row_size = 0;
-	uint32			row_c_size = 0;
-	char			*read_buff = NULL;
+	uint32			row_len = 0;
+	uint32			row_lz_len = 0;
+	char			*lz_buff = NULL;
 	char			*buff = NULL;
 	TSQEntry		*tsqe = NULL;
 
@@ -502,13 +503,13 @@ pg_track_slow_queries_internal(FunctionCallInfo fcinfo)
 	if (rsinfo == NULL || !IsA(rsinfo, ReturnSetInfo))
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("pg_track_slow_queries: set-valued function called in context " \
-						"that cannot accept a set")));
+				 errmsg("pg_track_slow_queries: set-valued function called " \
+						"in context that cannot accept a set")));
 	if (!(rsinfo->allowedModes & SFRM_Materialize))
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("pg_track_slow_queries: materialize mode required, but it is not " \
-						"allowed in this context")));
+				 errmsg("pg_track_slow_queries: materialize mode required, " \
+						"but it is not allowed in this context")));
 
 	/* Switch into long-lived context to construct returned data structures */
 	per_query_ctx = rsinfo->econtext->ecxt_per_query_memory;
@@ -516,7 +517,9 @@ pg_track_slow_queries_internal(FunctionCallInfo fcinfo)
 
 	/* Build a tuple descriptor for our result type */
 	if (get_call_result_type(fcinfo, NULL, &tupdesc) != TYPEFUNC_COMPOSITE)
-		elog(ERROR, "pg_track_slow_queries: return type must be a row type");
+		ereport(ERROR,
+				(errmsg("pg_track_slow_queries: return type must be a row " \
+						"type")));
 
 	tupstore = tuplestore_begin_heap(true, false, work_mem);
 	rsinfo->returnMode = SFRM_Materialize;
@@ -533,13 +536,13 @@ pg_track_slow_queries_internal(FunctionCallInfo fcinfo)
 		goto read_error;
 
 	/* Start by reading compressed row length */
-	while (fread(&row_c_size, sizeof(uint32), 1, file) == 1)
+	while (fread(&row_lz_len, sizeof(uint32), 1, file) == 1)
 	{
 		Datum			values[TSQ_COLS];
 		bool			nulls[TSQ_COLS];
 		int 			i = 0;
-		MemoryContext	tmpcontext;
 
+		/* Move to dedicated MemoryContext */
 		tmpcontext = AllocSetContextCreate(CurrentMemoryContext,
 						"PGTSQInternal", ALLOCSET_START_SMALL_SIZES);
 		oldcontext = MemoryContextSwitchTo(tmpcontext);
@@ -548,31 +551,36 @@ pg_track_slow_queries_internal(FunctionCallInfo fcinfo)
 		memset(nulls, 0, sizeof(nulls));
 
 		/* Read row length */
-		if (fread(&row_size, sizeof(uint32), 1, file) != 1)
+		if (fread(&row_len, sizeof(uint32), 1, file) != 1)
 			goto read_error;
 
-		if (row_c_size > 0)
+		/* Allocate new buffer */
+		if ((buff = (char *) palloc0(row_len)) == NULL)
+			goto alloc_error;
+
+		if (row_lz_len > 0)
 		{
-			/* If compressed row length > 0 then read and decompress it */
-			read_buff = (char *) palloc0(row_c_size);
-			if (fread(read_buff, row_c_size, 1, file) != 1)
+			/* If compressed part length is > 0 then read and decompress it */
+			if ((lz_buff = (char *) palloc0(row_lz_len)) == NULL)
+				goto alloc_error;
+			if (fread(lz_buff, row_lz_len, 1, file) != 1)
 				goto read_error;
-			buff = (char *) palloc0(row_size);
-			if (pglz_decompress(read_buff, row_c_size, buff, row_size) != row_size)
+			if (pglz_decompress(lz_buff, row_lz_len, buff, row_len) \
+					!= row_len)
 				goto decompress_error;
-			pfree(read_buff);
 		} else {
 			/* Uncompressed row */
-			buff = (char *) palloc0(row_size);
-			if (fread(buff, row_size, 1, file) != 1)
+			if (fread(buff, row_len, 1, file) != 1)
 				goto read_error;
 		}
 
-		tsqe = (TSQEntry *) palloc0(sizeof(TSQEntry));
-
+		/* Parse row */
+		if ((tsqe = (TSQEntry *) palloc0(sizeof(TSQEntry))) == NULL)
+			goto alloc_error;
 		if (!(pgtsq_parse_row(buff, tsqe)))
 			goto parse_error;
 
+		/* Build the tuple */
 		values[i++] = DirectFunctionCall3(timestamptz_in,
 										  CStringGetDatum(tsqe->datetime),
 										  ObjectIdGetDatum(InvalidOid),
@@ -591,7 +599,6 @@ pg_track_slow_queries_internal(FunctionCallInfo fcinfo)
 
 		MemoryContextSwitchTo(oldcontext);
 		MemoryContextDelete(tmpcontext);
-
 	}
 
 	LWLockRelease(pgtsqss->lock);
@@ -616,12 +623,19 @@ decompress_error:
 
 parse_error:
 	ereport(LOG,
-		    (errcode_for_file_access(),
-		     errmsg("pg_track_slow_queries: could not parse row")));
+			(errcode_for_file_access(),
+			 errmsg("pg_track_slow_queries: could not parse row")));
+	goto fail;
+
+alloc_error:
+	ereport(LOG,
+			(errmsg("pg_track_slow_queries: could not allocate memory")));
 	goto fail;
 
 fail:
 	/* Cleaning */
+	MemoryContextSwitchTo(oldcontext);
+	MemoryContextDelete(tmpcontext);
 	if (file)
 		FreeFile(file);
 	if (pgtsqss->lock)
