@@ -36,9 +36,6 @@ pgtsq_worker(Datum main_arg)
 
 	/* We're now ready to receive signals */
 	BackgroundWorkerUnblockSignals();
-	/*
-	 * Main loop: do this until the SIGTERM handler tells us to terminate
-	 */
 
 	/* Get pg_track_slow_queries.compress GUC value and enabled/disable
 	 * compression */
@@ -52,6 +49,9 @@ pgtsq_worker(Datum main_arg)
 		max_file_size_kb = (int) strtol(guc_max_file_size_value,
 										(char **)NULL, 10);
 
+	/*
+	 * Main loop: do this until the SIGTERM handler tells us to terminate
+	 */
 	while (!got_sigterm)
 	{
 		tv.tv_sec = timeout;
