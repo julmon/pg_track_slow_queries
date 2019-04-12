@@ -638,8 +638,11 @@ alloc_error:
 
 fail:
 	/* Cleaning */
-	MemoryContextSwitchTo(oldcontext);
-	MemoryContextDelete(tmpcontext);
+	if (tmpcontext)
+	{
+		MemoryContextSwitchTo(oldcontext);
+		MemoryContextDelete(tmpcontext);
+	}
 	if (file)
 		FreeFile(file);
 	if (pgtsqss->lock)
