@@ -83,7 +83,7 @@ static void pgtsq_shmem_startup(void);
 static int pgtsq_init_socket(void);
 
 /* GUC variable */
-static int tsq_log_min_duration = 0;	/* ms (>=0) or -1 (disabled) */
+static int tsq_log_min_duration = -1;	/* ms (>=0) or -1 (disabled) */
 static bool tsq_compression = true; 	/* enable row compression */
 static int tsq_max_file_size_kb = -1;	/* storage file max size in kB */
 static bool tsq_log_plan = true;    	/* enable row compression */
