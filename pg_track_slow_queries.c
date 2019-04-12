@@ -36,6 +36,10 @@
 #include "libpq/ip.h"
 #endif
 
+#if (PG_VERSION_NUM < 110000)
+#include "utils/memutils.h"
+#endif
+
 #include "common/pg_lzcompress.h"
 #include "executor/executor.h"
 #include "lib/stringinfo.h"
