@@ -1,0 +1,5 @@
+pg-track-slow-queries (1.0-1) unstable; urgency=low
+
+  * Initial release.
+
+ -- Julien Tachoires <julmon@gmail.com>  Fri, 12 Apr 2019 13:26:00 +0200

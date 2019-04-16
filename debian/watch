@@ -1,0 +1,2 @@
+version=3
+https://github.com/julmon/pg_track_slow_queries/releases .*/archive/(.*).tar.gz

@@ -1,0 +1,8 @@
+version: '2'
+
+services:
+  debian-build:
+    image: debian:stretch
+    volumes:
+    - ..:/workspace/pg-track-slow-queries-src
+    command: /workspace/pg-track-slow-queries-src/packaging/docker_make_deb.sh
