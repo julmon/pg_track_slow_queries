@@ -1,5 +1,7 @@
 # pg_track_slow_queries
 
+[![CircleCI](https://circleci.com/gh/julmon/pg_track_slow_queries/tree/master.svg?style=svg)](https://circleci.com/gh/julmon/pg_track_slow_queries/tree/master)
+
 PostgreSQL (9.5+) extension for slow queries tracking. This extension logs SQL queries and related information into dedicated file, only if query execution duration exceeds a certain amount of time. Logged query list can be retrieve using SQL function `pg_track_slow_queries()`. Log file can be truncated with `pg_track_slow_queries_reset()`.
 
 
@@ -10,7 +12,7 @@ Still under development.
 ## Installation
 
 ```console
-$ sudo PATH=$PATH:/path/to/pgsql/bin make install
+$ sudo PG_CONFIG=/path/to/pgsql/bin/pg_config make install
 ```
 
 ## Configuration

@@ -1,8 +1,9 @@
-BEGIN;
-SELECT plan(12);
-
-SET pg_track_slow_queries.log_min_duration TO 100;
+SET pg_track_slow_queries.log_min_duration TO 500;
 SET pg_track_slow_queries.log_plan TO on;
+
+BEGIN;
+SELECT plan(13);
+
 
 SELECT is(
   (SELECT COUNT(*) FROM pg_proc WHERE proname='pg_track_slow_queries')::INT,
@@ -28,8 +29,13 @@ SELECT is(
 );
 
 SELECT ok(
-  (SELECT true FROM pg_sleep(0.2))::BOOL,
-  'pg_sleep(0.1) should trigger query logging'
+  (SELECT true FROM pg_sleep(0.6))::BOOL,
+  'pg_sleep(0.3) should trigger query logging'
+);
+
+SELECT ok(
+  (SELECT true FROM pg_sleep(0.4))::BOOL,
+  'pg_sleep(0.2) should not trigger query logging'
 );
 
 SELECT is(
@@ -67,7 +73,7 @@ SELECT ok(
 SET pg_track_slow_queries.log_plan TO off;
 
 SELECT ok(
-  (SELECT true FROM pg_sleep(0.1))::BOOL,
+  (SELECT true FROM pg_sleep(0.6))::BOOL,
   'pg_sleep(0.1) should trigger query logging'
 );
 
