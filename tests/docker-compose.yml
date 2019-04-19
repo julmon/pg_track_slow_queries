@@ -4,7 +4,36 @@ services:
   debian-pg11-pgtsq:
     image: dalibo/pgtsq-sdk:stretch
     environment:
-    - VERSION
+    - PGPORT=5433
+    - PGVERSION=11
     volumes:
     - ..:/workspace
-    command: /workspace/tests/deb_pg11_run_tests.sh
+    working_dir: /workspace/tests
+    command: ./deb_pg_run_tests.sh
+  debian-pg10-pgtsq:
+    image: dalibo/pgtsq-sdk:stretch
+    environment:
+    - PGPORT=5434
+    - PGVERSION=10
+    volumes:
+    - ..:/workspace
+    working_dir: /workspace/tests
+    command: ./deb_pg_run_tests.sh
+  debian-pg96-pgtsq:
+    image: dalibo/pgtsq-sdk:stretch
+    environment:
+    - PGPORT=5435
+    - PGVERSION=9.6
+    volumes:
+    - ..:/workspace
+    working_dir: /workspace/tests
+    command: ./deb_pg_run_tests.sh
+  debian-pg95-pgtsq:
+    image: dalibo/pgtsq-sdk:stretch
+    environment:
+    - PGPORT=5432
+    - PGVERSION=9.5
+    volumes:
+    - ..:/workspace
+    working_dir: /workspace/tests
+    command: ./deb_pg_run_tests.sh

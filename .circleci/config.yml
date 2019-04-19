@@ -1,0 +1,52 @@
+version: 2
+
+jobs:
+  pg11-tests:
+    docker:
+      - image: dalibo/pgtsq-sdk:stretch
+    steps:
+      - checkout
+      - run: |
+          echo 'export PGPORT=5433' >> $BASH_ENV
+      - run: |
+          echo 'export PGVERSION=11' >> $BASH_ENV
+      - run: ./tests/deb_pg_run_tests.sh
+  pg10-tests:
+    docker:
+      - image: dalibo/pgtsq-sdk:stretch
+    steps:
+      - checkout
+      - run: |
+          echo 'export PGPORT=5434' >> $BASH_ENV
+      - run: |
+          echo 'export PGVERSION=10' >> $BASH_ENV
+      - run: ./tests/deb_pg_run_tests.sh
+  pg96-tests:
+    docker:
+      - image: dalibo/pgtsq-sdk:stretch
+    steps:
+      - checkout
+      - run: |
+          echo 'export PGPORT=5435' >> $BASH_ENV
+      - run: |
+          echo 'export PGVERSION=9.6' >> $BASH_ENV
+      - run: ./tests/deb_pg_run_tests.sh
+  pg95-tests:
+    docker:
+      - image: dalibo/pgtsq-sdk:stretch
+    steps:
+      - checkout
+      - run: |
+          echo 'export PGPORT=5432' >> $BASH_ENV
+      - run: |
+          echo 'export PGVERSION=9.5' >> $BASH_ENV
+      - run: ./tests/deb_pg_run_tests.sh
+
+workflows:
+  version: 2
+  tests:
+    jobs:
+      - pg11-tests
+      - pg10-tests
+      - pg96-tests
+      - pg95-tests
