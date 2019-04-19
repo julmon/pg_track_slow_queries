@@ -28,7 +28,7 @@ SELECT is(
 );
 
 SELECT ok(
-  (SELECT true FROM pg_sleep(0.1))::BOOL,
+  (SELECT true FROM pg_sleep(0.2))::BOOL,
   'pg_sleep(0.1) should trigger query logging'
 );
 

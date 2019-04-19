@@ -2,7 +2,7 @@ version: '2'
 
 services:
   debian-pg11-pgtsq:
-    image: debian:stretch
+    image: dalibo/pgtsq-sdk:stretch
     environment:
     - VERSION
     volumes:
