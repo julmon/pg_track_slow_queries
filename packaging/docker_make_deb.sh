@@ -1,13 +1,5 @@
 #!/bin/bash -eux
 
-# Install dependancies
-apt update
-apt install curl gnupg2 lsb-release -y
-curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-apt update
-apt install make gcc dh-make postgresql-common postgresql-server-dev-all devscripts build-essential lintian -y
-
 # Find package version from debian/changelog
 cd /workspace/pg-track-slow-queries-src
 PKGVER=$(dpkg-parsechangelog | grep -E '^Version:' | sed 's/Version: \([0-9\.]\+\)-.*/\1/g')
