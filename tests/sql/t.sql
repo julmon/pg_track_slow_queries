@@ -30,12 +30,12 @@ SELECT is(
 
 SELECT ok(
   (SELECT true FROM pg_sleep(0.6))::BOOL,
-  'pg_sleep(0.3) should trigger query logging'
+  'pg_sleep(0.6) should trigger query logging'
 );
 
 SELECT ok(
   (SELECT true FROM pg_sleep(0.4))::BOOL,
-  'pg_sleep(0.2) should not trigger query logging'
+  'pg_sleep(0.4) should not trigger query logging'
 );
 
 SELECT is(
