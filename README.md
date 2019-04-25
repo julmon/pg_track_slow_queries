@@ -90,3 +90,20 @@ SELECT * FROM pg_track_slow_queries_reset();
 
  * Do not support utility statements (`VACUUM`, `REINDEX`, etc).
  * Do not tracks parameters values of prepared statements.
+
+## Benchmarks
+
+Here are the results of a worse case scenario benchmark: tracking of all statements, read only queries, small database. WARNING: take it with caution, they've been made on a small machine with a low number of CPU. Better benchmarks coming soon.
+
+TPS without any statement tracking: 42230
+
+
+| Method                    | Parameters                                                | Plan | TPS   | Loss |
+|---------------------------|-----------------------------------------------------------|------|-------|------|
+| **pg_stat_statements**    | `track=top,tack_utility=off,save=on`                      | No   | 40577 |  4%  |
+| **pg_track_slow_queries** | `log_min_duration=0,compression=off,log_plan=off`         | No   | 29378 | 30%  |
+| **core**                  | `log_min_duration_statements=0,logging_collector=on`      | No   | 26475 | 38%  |
+| **pg_track_slow_queries** | `log_min_duration=0,compression=off,log_plan=on`          | Yes  | 26221 | 38%  |
+| **pg_track_slow_queries** | `log_min_duration=0,compression=on,log_plan=on`           | Yes  | 24597 | 42%  |
+| **auto_explain**          | `logging_collector=on,log_min_duration=0,log_format=json` | Yes  | 22654 | 46%  |
+| **pg_track_slow_queries** | `log_min_duration=0,compression=on,max_file_size=10GB`    | Yes  | 19940 | 53%  |
