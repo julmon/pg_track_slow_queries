@@ -20,4 +20,4 @@ sudo -u postgres psql -p $PGPORT -c "CREATE DATABASE tap;"
 sudo -u postgres psql -p $PGPORT -d tap -c "CREATE EXTENSION pgtap;"
 sudo -u postgres psql -p $PGPORT -d tap -c "CREATE EXTENSION pg_track_slow_queries;"
 cp ${DIR}/sql/t.sql /tmp/t.sql
-sudo -u postgres pg_prove -p $PGPORT -d tap /tmp/t.sql
+sudo -u postgres pg_prove -f -p $PGPORT -d tap /tmp/t.sql
