@@ -1,8 +1,9 @@
 SET pg_track_slow_queries.log_min_duration TO 500;
 SET pg_track_slow_queries.log_plan TO on;
+SET pg_track_slow_queries.cost_analyze TO 20;
 
 BEGIN;
-SELECT plan(13);
+SELECT plan(14);
 
 
 SELECT is(
@@ -64,6 +65,19 @@ SELECT ok(
   ) FROM pg_track_slow_queries() LIMIT 1)::BOOL,
   'no null value'
 );
+
+
+-- Costly query
+SELECT a FROM generate_series(1, 50000) a, pg_sleep(0.6)
+GROUP BY a ORDER BY a DESC;
+
+SELECT is(
+  (SELECT COUNT(*) FROM pg_track_slow_queries()
+   WHERE plan->'Plan'->'Actual Total Time' IS NOT NULL)::INT,
+  1,
+  '1 plan contains timings'
+);
+
 
 SELECT ok(
   (SELECT true FROM pg_track_slow_queries_reset())::BOOL,

@@ -35,6 +35,7 @@ CREATE EXTENSION pg_track_slow_queries;
 | **pg_track_slow_queries.compression**      | `bool` | `on`    | Enable or disable row compression. Compression could have impacts on performances but will save disk space.                                    |
 | **pg_track_slow_queries.max_file_size**    | `kB`   | `-1`    | Sets the maximum size of storage file. `-1` means no limitation.                                                                               |
 | **pg_track_slow_queries.log_plan**         | `bool` | `on`    | Enable execution plan logging.                                                                                                                 |
+| **pg_track_slow_queries.cost_analyze**     | `int`  | `-1`    | Cost threshold beyond which query execution analysis is performed, like EXPLAIN ANALYZE does. Could have high impacts on performances. `-1` means the feature is disabled. |
 
 ## Usage
 
@@ -98,12 +99,14 @@ Here are the results of a worse case scenario benchmark: tracking of all stateme
 TPS without any statement tracking: 42230
 
 
-| Method                    | Parameters                                                | Plan | TPS   | Loss |
-|---------------------------|-----------------------------------------------------------|------|-------|------|
-| **pg_stat_statements**    | `track=top,tack_utility=off,save=on`                      | No   | 40577 |  4%  |
-| **pg_track_slow_queries** | `log_min_duration=0,compression=off,log_plan=off`         | No   | 29378 | 30%  |
-| **core**                  | `log_min_duration_statements=0,logging_collector=on`      | No   | 26475 | 38%  |
-| **pg_track_slow_queries** | `log_min_duration=0,compression=off,log_plan=on`          | Yes  | 26221 | 38%  |
-| **pg_track_slow_queries** | `log_min_duration=0,compression=on,log_plan=on`           | Yes  | 24597 | 42%  |
-| **auto_explain**          | `logging_collector=on,log_min_duration=0,log_format=json` | Yes  | 22654 | 46%  |
-| **pg_track_slow_queries** | `log_min_duration=0,compression=on,max_file_size=10GB`    | Yes  | 19940 | 53%  |
+| Method                                                                              | Plan | ANALYZE | TPS   | Loss |
+|-------------------------------------------------------------------------------------|------|---------|-------|------|
+| **pg_stat_statements**<br>`track=top,tack_utility=off,save=on`                      | No   | No      | 40577 |  4%  |
+| **pg_track_slow_queries**<br>`log_min_duration=0,compression=off,log_plan=off`      | No   | No      | 29378 | 30%  |
+| **core**<br>`log_min_duration_statements=0,logging_collector=on`                    | No   | No      | 26475 | 38%  |
+| **pg_track_slow_queries**<br>`log_min_duration=0,compression=off`                   | Yes  | No      | 26221 | 38%  |
+| **pg_track_slow_queries**<br>`log_min_duration=0,cost_analyze=0,compression=off`    | Yes  | Yes     | 24874 | 41%  |
+| **pg_track_slow_queries**<br>`log_min_duration=0`                                   | Yes  | No      | 24597 | 42%  |
+| **auto_explain**<br>`logging_collector=on,log_min_duration=0,log_format=json`       | Yes  | No      | 22654 | 46%  |
+| **auto_explain**<br>`[..],log_analyze=on,log_timing=on,log_buffers=on`              | Yes  | Yes     | 21745 | 48%  |
+| **pg_track_slow_queries**<br>`log_min_duration=0,max_file_size=10GB`                | Yes  | No      | 19940 | 53%  |

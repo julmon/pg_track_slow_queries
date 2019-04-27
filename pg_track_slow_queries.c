@@ -87,6 +87,9 @@ static int tsq_log_min_duration = -1;	/* ms (>=0) or -1 (disabled) */
 static bool tsq_compression = true; 	/* enable row compression */
 static int tsq_max_file_size_kb = -1;	/* storage file max size in kB */
 static bool tsq_log_plan = true;    	/* enable row compression */
+/* Enables timers, rows and buffers instrumentalization options when query
+ * total cost is greater than this value. -1 means the feature is disabled */
+static int tsq_cost_analyze = -1;
 
 /* Saved hook values in case of unload */
 static shmem_startup_hook_type prev_shmem_startup_hook = NULL;
@@ -113,6 +116,18 @@ PG_FUNCTION_INFO_V1(pg_track_slow_queries);
 static void
 pgtsq_ExecutorStart(QueryDesc *queryDesc, int eflags)
 {
+	Cost total_cost;
+	/* Enables timers, rows and buffers instrumentalization options if query
+	 * total cost exceeds tsq_cost_analyze. */
+	total_cost = queryDesc->plannedstmt->planTree->total_cost;
+	if (tsq_log_plan && tsq_cost_analyze > -1 && total_cost > tsq_cost_analyze
+			&& (eflags & EXEC_FLAG_EXPLAIN_ONLY) == 0)
+	{
+		queryDesc->instrument_options |= INSTRUMENT_TIMER;
+		queryDesc->instrument_options |= INSTRUMENT_ROWS;
+		queryDesc->instrument_options |= INSTRUMENT_BUFFERS;
+	}
+
 	if (prev_ExecutorStart)
 		prev_ExecutorStart(queryDesc, eflags);
 	else
@@ -193,9 +208,9 @@ pgtsq_ExecutorEnd(QueryDesc *queryDesc)
 			es = NewExplainState();
 			/* Get Execution Plan as JSON */
 			es->verbose = 1;
-			es->analyze = 0;
-			es->buffers = 0;
-			es->timing = 0;
+			es->analyze = (queryDesc->instrument_options & INSTRUMENT_TIMER);
+			es->buffers = (queryDesc->instrument_options & INSTRUMENT_BUFFERS);
+			es->timing = (queryDesc->instrument_options & INSTRUMENT_TIMER);
 			es->summary = 0;
 			es->format = EXPLAIN_FORMAT_JSON;
 
@@ -361,7 +376,7 @@ _PG_init(void)
 		return;
 	}
 
-	/* Define custom GUC variable. */
+	/* Define custom GUC variables */
 	DefineCustomIntVariable("pg_track_slow_queries.log_min_duration",
 							"Sets the minimum execution time above which queries and plans will "
 							"be logged.",
@@ -408,6 +423,20 @@ _PG_init(void)
 							NULL,
 							NULL,
 							NULL);
+
+	DefineCustomIntVariable("pg_track_slow_queries.cost_analyze",
+							"Enables query execution analyzing when " \
+							"estimated total cost exceeds this value.",
+							"-1 turns this feature off.",
+							&tsq_cost_analyze,
+							-1,
+							-1, 1000000,
+							PGC_SUSET,
+							0,
+							NULL,
+							NULL,
+							NULL);
+
 
 	EmitWarningsOnPlaceholders("pg_track_slow_queries");
 
