@@ -1,0 +1,32 @@
+pkgname=postgresql_11_pg_track_slow_queries
+pkgver=1.0b1
+pkgrel=1
+pkgdesc="PostgreSQL extension for slow queries tracking"
+url="https://github.com/julmon/pg_track_slow_queries"
+arch="all"
+license="PostgreSQL"
+pkgusers="postgres"
+pkggroups="postgres"
+checkdepends="diffutils"
+source="$pkgname-$pkgver.tar.gz::https://github.com/julmon/pg_track_slow_queries/archive/v$pkgver.tar.gz"
+options="!checkroot !fhs"
+builddir="$srcdir"/pg_track_slow_queries-$pkgver
+
+prepare() {
+	default_prepare
+}
+
+build() {
+	msg "Building"
+	export CFLAGS="${CFLAGS/-Os/-O2}"
+	export CPPFLAGS="${CPPFLAGS/-Os/-O2}"
+	cd "$builddir"
+	PG_CONFIG=/usr/local/bin/pg_config make
+}
+
+package() {
+	cd "$builddir"
+	PG_CONFIG=/usr/local/bin/pg_config make DESTDIR="$pkgdir" install
+}
+
+sha512sums="42e08ad5da8b22f11d4dd417809ccc02599f6674a47a4dbd942167dae4a6e096a260f3880c64d39d74d6e1aa343b6afd47a4a559e92978444ab8542f501e4bf2  $pkgname-$pkgver.tar.gz"
