@@ -6,3 +6,10 @@ services:
     volumes:
     - ..:/workspace/pg-track-slow-queries-src
     command: /workspace/pg-track-slow-queries-src/packaging/docker_make_deb.sh
+
+  alpine-build:
+    image: postgres:11-alpine
+    volumes:
+    - ..:/workspace/pg-track-slow-queries-src
+    command: /workspace/pg-track-slow-queries-src/packaging/docker_make_apk.sh
+
